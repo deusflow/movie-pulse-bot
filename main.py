@@ -30,31 +30,47 @@ def extract_year(item: Dict) -> Optional[int]:
 
 def select_slots(trending_list: list) -> Tuple[Dict, Dict, Dict]:
     slot1 = trending_list[0]
+    used_ids = {slot1.get("id")}
 
-    slot2 = next(
-        (
-            item
-            for item in trending_list
-            if 35 in (item.get("genre_ids") or [])
-            and item.get("id") != slot1.get("id")
-        ),
-        None,
+    def pick(items: list, predicate) -> Optional[Dict]:
+        for item in items:
+            if item.get("id") in used_ids:
+                continue
+            if predicate and not predicate(item):
+                continue
+            return item
+        return None
+
+    slot2 = pick(
+        trending_list,
+        lambda item: 35 in (item.get("genre_ids") or []),
     )
     if slot2 is None:
         comedy_list = get_comedy_trending()
-        slot2 = comedy_list[0] if comedy_list else trending_list[0]
+        slot2 = pick(comedy_list, None)
+    if slot2 is None:
+        slot2 = pick(trending_list, None)
+    if slot2 is None:
+        if len(trending_list) <= 1:
+            print("⚠️ Only one item available; duplicating slots.")
+        slot2 = slot1
 
-    slot3 = next(
-        (
-            item
-            for item in trending_list
-            if 35 not in (item.get("genre_ids") or [])
-            and item.get("id") != slot1.get("id")
-        ),
-        None,
+    used_ids.add(slot2.get("id"))
+
+    slot3 = pick(
+        trending_list,
+        lambda item: 35 not in (item.get("genre_ids") or []),
     )
     if slot3 is None:
-        slot3 = trending_list[1] if len(trending_list) > 1 else trending_list[0]
+        slot3 = pick(get_comedy_trending(), None)
+    if slot3 is None:
+        slot3 = pick(trending_list, None)
+    if slot3 is None:
+        if len(trending_list) <= 1:
+            print("⚠️ Only one item available; duplicating slots.")
+        else:
+            print("⚠️ Not enough unique items; duplicating slots.")
+        slot3 = slot1
 
     return slot1, slot2, slot3
 

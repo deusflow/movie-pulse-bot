@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Dict, List, Optional
 
 import requests
@@ -14,6 +15,7 @@ POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
 LETTERBOXD_RSS_URL = "https://letterboxd.com/films/popular/rss/"
 ROGER_EBERT_RSS_URL = "https://www.rogerebert.com/feed"
+OMDB_API_URL = "http://www.omdbapi.com/"
 
 GENRE_MAP: Dict[int, str] = {
     28: "Action",
@@ -44,18 +46,69 @@ def _build_item(result: Dict) -> Dict:
     }
 
 
+def _extract_rss_title(raw_title: str) -> str:
+    if not raw_title:
+        return ""
+    title = raw_title.strip()
+
+    for sep in (" - ", " — ", " – ", ": "):
+        if sep in title:
+            title = title.split(sep, 1)[0].strip()
+            break
+
+    ex_match = re.match(r"^(.*?[!?])\s+.+", title)
+    if ex_match:
+        title = ex_match.group(1).strip()
+
+    verb_match = re.search(
+        r"\b(is|are|was|were|reviews?|reviewing|premieres?|debuts?|announces?|returns?|returning|recap|explained|explains|trailer|teaser)\b",
+        title,
+        re.IGNORECASE,
+    )
+    if verb_match:
+        title = title[: verb_match.start()].strip()
+
+    title = re.sub(r"[,:;\-]+$", "", title).strip()
+    return title or raw_title.strip()
+
+
+def _fetch_omdb_poster(title: str) -> Optional[str]:
+    if not title:
+        return None
+    try:
+        response = requests.get(
+            OMDB_API_URL,
+            params={"t": title, "apikey": "trilogy"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        poster = data.get("Poster")
+        if not poster or poster == "N/A":
+            return None
+        return poster
+    except Exception as exc:
+        print(f"OMDb poster lookup failed: {exc}")
+        return None
+
+
 def _rss_fallback_items() -> List[Dict]:
     items: List[Dict] = []
     feeds = [LETTERBOXD_RSS_URL, ROGER_EBERT_RSS_URL]
+    poster_cache: Dict[str, Optional[str]] = {}
 
     try:
         for feed_url in feeds:
             feed = feedparser.parse(feed_url)
             for entry in feed.entries:
-                title = entry.get("title", "").strip()
+                raw_title = entry.get("title", "").strip()
+                title = _extract_rss_title(raw_title)
                 summary = entry.get("summary", "") or entry.get("description", "")
                 if not title:
                     continue
+                if title not in poster_cache:
+                    poster_cache[title] = _fetch_omdb_poster(title)
+                poster_url = poster_cache[title]
                 items.append(
                     {
                         "id": hash(f"{feed_url}:{title}"),
@@ -63,7 +116,7 @@ def _rss_fallback_items() -> List[Dict]:
                         "media_type": "movie",
                         "genre_ids": [],
                         "overview": summary,
-                        "poster_path": None,
+                        "poster_path": poster_url,
                         "vote_average": None,
                         "release_date": None,
                     }
@@ -150,6 +203,8 @@ def get_comedy_trending() -> List[Dict]:
 def get_poster_url(poster_path: Optional[str]) -> Optional[str]:
     if not poster_path:
         return None
+    if str(poster_path).startswith("http"):
+        return str(poster_path)
     return f"{POSTER_BASE_URL}{poster_path}"
 
 
