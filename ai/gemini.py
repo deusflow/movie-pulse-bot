@@ -4,12 +4,13 @@ import re
 from typing import Dict, List
 
 from dotenv import load_dotenv
-from google import genai
+from groq import Groq
+from ai.heuristic import analyze_movie_offline
 
 # Load environment variables once at import time.
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY")
 DEFAULT_RESULT = {
     "score": 50,
     "positive_comment": "Not enough data",
@@ -38,9 +39,9 @@ def analyze_movie(
     if not comments:
         return DEFAULT_RESULT
 
-    if not GEMINI_API_KEY:
-        print("GEMINI_API_KEY is missing. Set it in .env")
-        return DEFAULT_RESULT
+    if not GROQ_API_KEY:
+        print("GROQ_API_KEY is missing. Using offline heuristic analyzer")
+        return analyze_movie_offline(title, media_type, genres, overview, comments)
 
     prompt = (
         "You are a movie sentiment analyst. Respond ONLY with JSON in this format: "
@@ -53,21 +54,25 @@ def analyze_movie(
     )
 
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt,
+        client = Groq(api_key=GROQ_API_KEY)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_completion_tokens=1024,
+            stream=False,
         )
+        result = response.choices[0].message.content
     except Exception as exc:
-        print(f"Gemini API error: {exc}")
-        return DEFAULT_RESULT
+        print(f"Groq API error: {exc}")
+        return analyze_movie_offline(title, media_type, genres, overview, comments)
 
     try:
-        raw_text = _strip_fences(getattr(response, "text", ""))
+        raw_text = _strip_fences(result or "")
         return json.loads(raw_text)
     except Exception as exc:
-        print(f"Gemini response parse error: {exc}")
-        return DEFAULT_RESULT
+        print(f"Groq response parse error: {exc}")
+        return analyze_movie_offline(title, media_type, genres, overview, comments)
 
 
 if __name__ == "__main__":
