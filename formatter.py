@@ -1,3 +1,4 @@
+import re
 from typing import Dict, Optional
 
 MAX_CAPTION_LENGTH = 950
@@ -6,8 +7,7 @@ MAX_CAPTION_LENGTH = 950
 def escape_md(text: str) -> str:
     if text is None:
         return ""
-    escape_chars = r"_*[]()~`>#+-=|{}.!"
-    return "".join(f"\\{ch}" if ch in escape_chars else ch for ch in str(text))
+    return re.sub(r"([_\*\[\]\(\)~`>#+\-=|{}.!])", r"\\\1", str(text))
 
 
 def _media_emoji(media_type: str) -> str:
