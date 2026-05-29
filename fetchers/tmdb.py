@@ -2,6 +2,7 @@ import os
 from typing import Dict, List, Optional
 
 import requests
+import feedparser
 from dotenv import load_dotenv
 
 # Load environment variables once at import time.
@@ -10,6 +11,9 @@ load_dotenv()
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 POSTER_BASE_URL = "https://image.tmdb.org/t/p/w500"
+
+LETTERBOXD_RSS_URL = "https://letterboxd.com/films/popular/rss/"
+ROGER_EBERT_RSS_URL = "https://www.rogerebert.com/feed"
 
 GENRE_MAP: Dict[int, str] = {
     28: "Action",
@@ -40,10 +44,40 @@ def _build_item(result: Dict) -> Dict:
     }
 
 
+def _rss_fallback_items() -> List[Dict]:
+    items: List[Dict] = []
+    feeds = [LETTERBOXD_RSS_URL, ROGER_EBERT_RSS_URL]
+
+    try:
+        for feed_url in feeds:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries:
+                title = entry.get("title", "").strip()
+                summary = entry.get("summary", "") or entry.get("description", "")
+                if not title:
+                    continue
+                items.append(
+                    {
+                        "id": hash(f"{feed_url}:{title}"),
+                        "title": title,
+                        "media_type": "movie",
+                        "genre_ids": [],
+                        "overview": summary,
+                        "poster_path": None,
+                        "vote_average": None,
+                        "release_date": None,
+                    }
+                )
+        return items[:10]
+    except Exception as exc:
+        print(f"RSS fallback failed: {exc}")
+        return []
+
+
 def _fetch_trending() -> List[Dict]:
     if not TMDB_API_KEY:
-        print("TMDB_API_KEY is missing. Set it in .env")
-        return []
+        print("TMDB_API_KEY is missing. Using RSS fallback")
+        return _rss_fallback_items()
 
     try:
         response = requests.get(
@@ -61,8 +95,8 @@ def _fetch_trending() -> List[Dict]:
 
 def _fetch_discover_comedy() -> List[Dict]:
     if not TMDB_API_KEY:
-        print("TMDB_API_KEY is missing. Set it in .env")
-        return []
+        print("TMDB_API_KEY is missing. Using RSS fallback")
+        return _rss_fallback_items()
 
     try:
         response = requests.get(
