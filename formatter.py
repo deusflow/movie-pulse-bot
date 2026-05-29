@@ -59,16 +59,16 @@ def build_daily_post(
     caption = (
         "🎬 *Daily Movie Pulse*\n\n"
         "🔥 *Most Discussed*\n"
-        f"*{main_title}* | {media_emoji} | {main_genres}\n"
+        f"*{main_title}* \\| {media_emoji} \\| {main_genres}\n"
         f"⭐ {main_score}/100{score_emoji}\n"
         f"_{main_summary}_\n"
         f"💬 Loved it: \"{main_positive}\"\n"
         f"💬 Hated it: \"{main_negative}\"\n\n"
         "😂 *Comedy Pick*\n"
-        f"*{comedy_title}* | {comedy_genres} | ⭐ {comedy_score}/100\n"
+        f"*{comedy_title}* \\| {comedy_genres} \\| ⭐ {comedy_score}/100\n"
         f"_{comedy_summary}_\n\n"
         "📊 *Also Trending*\n"
-        f"*{third_title}* | {third_genres} | ⭐ {third_score}/100\n\n"
+        f"*{third_title}* \\| {third_genres} \\| ⭐ {third_score}/100\n\n"
         "\\#movies \\#trending \\#dailypulse"
     )
 
@@ -78,16 +78,16 @@ def build_daily_post(
         caption = (
             "🎬 *Daily Movie Pulse*\n\n"
             "🔥 *Most Discussed*\n"
-            f"*{main_title}* | {media_emoji} | {main_genres}\n"
+            f"*{main_title}* \\| {media_emoji} \\| {main_genres}\n"
             f"⭐ {main_score}/100{score_emoji}\n"
             f"_{main_summary}_\n"
             f"💬 Loved it: \"{main_positive}\"\n"
             f"💬 Hated it: \"{main_negative}\"\n\n"
             "😂 *Comedy Pick*\n"
-            f"*{comedy_title}* | {comedy_genres} | ⭐ {comedy_score}/100\n"
+            f"*{comedy_title}* \\| {comedy_genres} \\| ⭐ {comedy_score}/100\n"
             f"_{comedy_summary}_\n\n"
             "📊 *Also Trending*\n"
-            f"*{third_title}* | {third_genres} | ⭐ {third_score}/100\n\n"
+            f"*{third_title}* \\| {third_genres} \\| ⭐ {third_score}/100\n\n"
             "\\#movies \\#trending \\#dailypulse"
         )
 
