@@ -7,11 +7,11 @@ from typing import Dict, Optional, Tuple
 
 from ai.gemini import analyze_movie
 from bot.sender import send_daily_post
-from fetchers.reddit import get_top_comments, search_movie_discussion
-from fetchers.public_sources import get_public_comments
+from fetchers.reddit import get_top_comments
 from fetchers.tmdb import (
     get_comedy_trending,
     get_genre_names,
+    get_movie_reviews,
     get_poster_url,
     get_trending_all,
 )
@@ -77,11 +77,7 @@ def select_slots(trending_list: list) -> Tuple[Dict, Dict, Dict]:
 
 def enrich_item(tmdb_item: Dict) -> Dict:
     title = tmdb_item.get("title") or tmdb_item.get("name")
-    year = extract_year(tmdb_item)
-    reddit = search_movie_discussion(title, year)
-    comments = reddit["comments"]
-    if len(comments) < 5:
-        comments.extend(get_public_comments(title, year, max_per_source=5))
+    comments = get_movie_reviews(tmdb_item.get("id"))
     comments = get_top_comments(comments)
     genre_names = get_genre_names(tmdb_item.get("genre_ids", []))
 

@@ -215,6 +215,28 @@ def get_genre_names(genre_ids: List[int]) -> str:
     return ", ".join(names)
 
 
+def get_movie_reviews(tmdb_id: Optional[int]) -> List[str]:
+    if not TMDB_API_KEY:
+        print("TMDB_API_KEY is missing. Reviews unavailable")
+        return []
+    if not tmdb_id:
+        return []
+    try:
+        response = requests.get(
+            f"{TMDB_BASE_URL}/movie/{tmdb_id}/reviews",
+            params={"api_key": TMDB_API_KEY},
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        reviews = data.get("results", [])
+        contents = [review.get("content", "").strip() for review in reviews]
+        return [content for content in contents if content][:5]
+    except Exception as exc:
+        print(f"TMDB reviews request failed: {exc}")
+        return []
+
+
 if __name__ == "__main__":
     items = get_trending_all()
     print(f"Found {len(items)} trending")
