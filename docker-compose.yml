@@ -1,0 +1,56 @@
+services:
+  # База данных
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # API
+  api:
+    build: .
+    container_name: movie-pulse-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Бот
+  bot:
+    build: .
+    container_name: movie-pulse-bot
+    restart: "no"
+    env_file:
+      - .env
+    command: ["python3", "main.py"]
+    depends_on:
+      - postgres
+    profiles:
+      - bot
+
+# Cloudflare Tunnel
+  cf-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cf-tunnel
+    restart: unless-stopped
+    network_mode: "host"
+    command: >
+      tunnel --no-autoupdate --protocol http2 run
+      --token ${CF_TUNNEL_TOKEN} 
+      
+volumes:
+  postgres_data:
