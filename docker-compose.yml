@@ -23,7 +23,7 @@ services:
     depends_on:
       - postgres
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      test: [ "CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -36,21 +36,20 @@ services:
     restart: "no"
     env_file:
       - .env
-    command: ["python3", "main.py"]
+    command: [ "python3", "main.py" ]
     depends_on:
       - postgres
     profiles:
       - bot
 
-# Cloudflare Tunnel
+  # Cloudflare Tunnel
   cf-tunnel:
     image: cloudflare/cloudflared:latest
     container_name: cf-tunnel
     restart: unless-stopped
     network_mode: "host"
     command: >
-      tunnel --no-autoupdate --protocol http2 run
-      --token ${CF_TUNNEL_TOKEN} 
-      
+      tunnel --no-autoupdate --protocol http2 run --token ${CF_TUNNEL_TOKEN} 
+
 volumes:
   postgres_data:
